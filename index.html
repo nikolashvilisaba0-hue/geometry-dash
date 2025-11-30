@@ -16,14 +16,15 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             overflow: hidden;
             color: #fff;
         }
 
         .game-container {
             width: 95%; 
-            max-width: 1100px;
+            max-width: 1200px; /* Adjusted max width */
+            height: 90vh; /* Explicitly set height to 90% of viewport height */
             box-shadow: 0 0 40px rgba(0, 255, 255, 0.6); 
             border-radius: 16px;
             overflow: hidden;
@@ -35,7 +36,7 @@
             display: block;
             background-color: #1a1a2e; 
             width: 100%;
-            height: 700px;
+            height: 100%; 
         }
 
         .hud {
@@ -55,13 +56,13 @@
 
         .score-text {
             color: #E0E0FF; 
-            font-size: 1.25rem;
+            font-size: clamp(0.9rem, 1.5vw, 1.25rem);
             font-weight: 700;
         }
         
         .timer-text {
             color: #FF66FF; 
-            font-size: 1.8rem; 
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
             font-weight: 700;
             text-shadow: 0 0 10px #FF66FF;
         }
@@ -90,22 +91,24 @@
             color: #fff;
             text-align: center;
             z-index: 10;
+            padding: 10px;
         }
 
         .game-overlay h1 {
-            font-size: 5rem; 
+            font-size: clamp(2rem, 5vw, 5rem);
+            margin-bottom: clamp(1rem, 2vw, 1.5rem);
         }
         
         .game-overlay p {
-            font-size: 1.3rem; 
+            font-size: clamp(0.9rem, 1.5vw, 1.3rem); 
         }
 
         .game-button {
             background: linear-gradient(45deg, #00FFFF, #0088FF); 
             border: 2px solid #00FFFF;
             color: #0d0e14;
-            padding: 1.2rem 4rem;
-            font-size: 1.7rem; 
+            padding: clamp(0.8rem, 1.5vw, 1.2rem) clamp(2rem, 5vw, 4rem);
+            font-size: clamp(1rem, 2vw, 1.7rem);
             font-weight: bold;
             border-radius: 10px;
             cursor: pointer;
@@ -170,28 +173,24 @@
             </div>
             <div class="hud-right flex flex-col items-end">
                  <div id="planeTimerDisplay" class="timer-text hidden"></div>
-                 <div id="userIdDisplay" class="user-id-text opacity-0"></div> <!-- Placeholder for layout -->
+                 <div id="userIdDisplay" class="user-id-text opacity-0"></div>
             </div>
         </div>
 
         <div id="gameOverlay" class="game-overlay">
             <h1 id="overlayTitle" class="text-6xl font-bold mb-6 text-cyan-400" style="text-shadow: 0 0 10px #00FFFF;">NEON DASH CLONE</h1>
-            <p class="text-xl text-gray-300 mb-8 font-normal">
-                <span id="controlText">Press SPACE, UP ARROW, or CLICK to Jump</span>
-            </p>
-            <p class="text-lg text-gray-500 mb-8">Timing is key. Collect hearts for a second chance!</p>
             
             <button id="mainButton" class="game-button" onclick="handleGameStart()">INITIATE</button>
             <button id="leaderboardButton" class="game-button !bg-none !border-pink-500 text-pink-400 hover:!bg-pink-900/30" style="box-shadow: 0 0 20px rgba(255, 102, 255, 0.7);" onclick="showLeaderboard()">VIEW HIGH SCORES</button>
 
             <div id="leaderboardContainer" class="leaderboard-container hidden">
-                <h2 class="text-2xl font-bold text-center text-pink-400 mb-4">LOCAL HIGH SCORES</h2>
+                <h2 class="text-2xl font-bold text-center text-pink-400 mb-4">LOCAL HIGH SCORES (TOP 5)</h2>
                 <ul id="leaderboardList" class="leaderboard-list">
                 </ul>
                 <button class="w-full mt-4 p-3 bg-gray-700 rounded-lg text-gray-300 font-semibold hover:bg-gray-600 transition" onclick="hideLeaderboard()">BACK TO MENU</button>
             </div>
             
-            <div id="messageBox" class="absolute bottom-12 p-4 bg-opacity-90 rounded-xl hidden font-normal text-lg" style="box-shadow: 0 0 15px rgba(255, 255, 0, 0.5);"></div>
+            <div id="messageBox" class="absolute bottom-4 sm:bottom-12 p-4 bg-opacity-90 rounded-xl hidden font-normal text-lg" style="box-shadow: 0 0 15px rgba(255, 255, 0, 0.5);"></div>
         </div>
     </div>
 
@@ -204,7 +203,6 @@
         const planeTimerDisplay = document.getElementById('planeTimerDisplay');
         const overlay = document.getElementById('gameOverlay');
         const mainButton = document.getElementById('mainButton');
-        const controlText = document.getElementById('controlText');
         const leaderboardButton = document.getElementById('leaderboardButton');
         const leaderboardContainer = document.getElementById('leaderboardContainer');
         const leaderboardList = document.getElementById('leaderboardList');
@@ -253,7 +251,7 @@
         
         function showMessage(text, duration = 1500, color = 'bg-yellow-500', shadowColor = '#FFFF00') {
             messageBox.innerText = text;
-            messageBox.className = `absolute bottom-12 p-4 ${color} bg-opacity-90 rounded-xl block transition-opacity duration-300 font-normal text-lg`;
+            messageBox.className = `absolute bottom-4 sm:bottom-12 p-4 ${color} bg-opacity-90 rounded-xl block transition-opacity duration-300 font-normal text-lg`;
             messageBox.style.boxShadow = `0 0 15px ${shadowColor}`;
             setTimeout(() => {
                 messageBox.classList.add('hidden');
@@ -285,16 +283,20 @@
 
             let scores = loadScores();
             
-            scores.push({ score: finalScore, date: new Date().toISOString() });
+            // Add the new score
+            const newScoreEntry = { score: finalScore, date: new Date().toISOString() };
+            scores.push(newScoreEntry);
             
             scores.sort((a, b) => b.score - a.score);
-            scores = scores.slice(0, 10); 
+            
+            // --- MODIFICATION: Keep only top 5 scores ---
+            const MAX_SCORES = 5; 
+            const isNewHighScore = scores.findIndex(s => s.score === newScoreEntry.score && s.date === newScoreEntry.date) < MAX_SCORES;
+            scores = scores.slice(0, MAX_SCORES); 
+            // ---------------------------------------------
 
             saveScores(scores);
             
-            const topScores = loadScores();
-            const isNewHighScore = topScores.some(s => s.score === finalScore && s.date === scores.find(s => s.score === finalScore)?.date);
-
             if(isNewHighScore) {
                  showMessage(`New High Score Saved!`, 2000, 'bg-green-500', '#00FF00');
             }
@@ -388,10 +390,7 @@
                 this.vy = 0;
                 this.rotation = 0;
                 state.planeModeTimeLeft = newMode === 'plane' ? 1000 : 0; 
-
-                controlText.innerText = newMode === 'cube' 
-                    ? 'Press SPACE, UP ARROW, or CLICK to Jump' 
-                    : 'HOLD SPACE, UP ARROW, or CLICK to Fly Up';
+                
                 state.distanceSinceLastPortal = 0;
                 
                 if (newMode === 'cube') {
@@ -707,15 +706,36 @@
                    pY + pH > oY;
         }
 
-        function handleObstacleInteraction(obstacle) {
+        function handleObstacleInteraction(obstacle, deltaFactor) { // Added deltaFactor argument
             const bounds = obstacle.getBounds();
 
-            if (obstacle.type === 'spike' || obstacle.type === 'block') {
-                if (checkCollision(player, obstacle)) {
+            if (checkCollision(player, obstacle)) {
+                
+                // --- 1. Handle specific plane platform interaction (landing or crashing) ---
+                if (obstacle.type === 'block_platform' && player.mode === 'plane') {
+                    // Calculate player's position just before the current frame update
+                    // FIX: Use deltaFactor to accurately reverse the movement (player.vy * deltaFactor is the distance traveled in this frame)
+                    const prevYBottom = (player.y + player.size) - (player.vy * deltaFactor); 
+                    
+                    // Safe landing condition: previous bottom was above or at platform top, and player is moving downwards or stopped (vy >= 0)
+                    if (prevYBottom <= bounds.y && player.vy >= 0) { 
+                        // Landed safely on top (Acts like normal ground)
+                        player.y = bounds.y - player.size;
+                        player.vy = 0;
+                        player.onGround = true; 
+                        return; // Skip all other checks if a safe landing occurred
+                    } 
+                    // If not a safe landing (hit from side or bottom), it proceeds to the death check below.
+                }
+
+                // --- 2. Handle instant death (spike, block, or plane crash into platform side/bottom) ---
+                // The 'block_platform' check is only reached here if the safe landing check above failed.
+                if (obstacle.type === 'spike' || obstacle.type === 'block' || 
+                    (obstacle.type === 'block_platform' && player.mode === 'plane')) { 
+                    
                     if (state.lives > 0) {
                         state.lives--;
                         resetPlayerPosition();
-                        obstacle.markedForDeletion = true; 
                         spawnExplosion(player.x + player.size/2, player.y + player.size/2, 20, '#FF3333');
                         showMessage("Life Lost! Restarting...", 1000, 'bg-red-700', '#FF0000');
                         return;
@@ -723,45 +743,39 @@
                     gameOver();
                     return;
                 }
-            } else if (obstacle.type.startsWith('pad') && player.mode === 'cube') {
-                if (checkCollision(player, obstacle) && !obstacle.activated) {
-                    if (player.y + player.size - player.vy * (1/60) <= bounds.y) {
+
+                // --- 3. Handle non-deadly interactions (Pads, Orbs, Lives, Portals) ---
+                
+                if (obstacle.type.startsWith('pad') && player.mode === 'cube') {
+                    // We only activate the pad if the player hit it from above (similar to the platform logic)
+                    const prevYBottom = (player.y + player.size) - (player.vy * deltaFactor);
+                    if (prevYBottom <= bounds.y) {
                         const force = obstacle.type === 'pad_yellow' ? CONFIG.PAD_YELLOW_FORCE : CONFIG.PAD_PINK_FORCE;
                         player.jump(force);
                         obstacle.activated = true; 
                         spawnExplosion(obstacle.x + obstacle.w/2, obstacle.y + obstacle.h/2, 10, '#FFFFFF');
                     }
-                }
-            } else if (obstacle.type.startsWith('orb') && player.mode === 'cube') {
-                if (checkCollision(player, obstacle) && !obstacle.activated && player.isHoldingInput) {
-                    const force = obstacle.type === 'orb_yellow' ? CONFIG.ORB_YELLOW_FORCE : CONFIG.ORB_PINK_FORCE;
-                    player.jump(force);
-                    obstacle.activated = true; 
-                    spawnExplosion(obstacle.x + obstacle.w/2, obstacle.y + obstacle.h/2, 10, '#FFFFFF');
-                }
-            } else if (obstacle.type === 'second_life') {
-                if (checkCollision(player, obstacle)) {
+                } else if (obstacle.type.startsWith('orb') && player.mode === 'cube') {
+                    if (player.isHoldingInput) {
+                        const force = obstacle.type === 'orb_yellow' ? CONFIG.ORB_YELLOW_FORCE : CONFIG.ORB_PINK_FORCE;
+                        player.jump(force);
+                        obstacle.activated = true; 
+                        spawnExplosion(obstacle.x + obstacle.w/2, obstacle.y + obstacle.h/2, 10, '#FFFFFF');
+                    }
+                } else if (obstacle.type === 'second_life') {
                     state.lives = Math.min(3, state.lives + 1); 
                     showMessage("Life Protocol Activated! (+1 ♥)", 1500, 'bg-green-600', '#00FF00');
                     obstacle.markedForDeletion = true;
-                }
-            } else if (obstacle.type === 'mode_change') {
-                if (checkCollision(player, obstacle) && !obstacle.activated) {
-                    const newMode = player.mode === 'cube' ? 'plane' : 'cube';
-                    player.setMode(newMode);
-                    obstacle.activated = true; 
-                    spawnExplosion(obstacle.x + obstacle.w/2, canvas.height / 2, 40, '#FF66FF');
-                    
-                    setTimeout(() => {
-                         obstacle.markedForDeletion = true;
-                    }, 500); 
-                }
-            } else if (obstacle.type === 'block_platform' && player.mode === 'plane') {
-                if (checkCollision(player, obstacle)) {
-                    if (player.y + player.size - player.vy * (1/60) <= bounds.y && player.vy > 0) {
-                        player.y = bounds.y - player.size;
-                        player.vy = 0;
-                        player.onGround = true; 
+                } else if (obstacle.type === 'mode_change') {
+                    if (!obstacle.activated) {
+                        const newMode = player.mode === 'cube' ? 'plane' : 'cube';
+                        player.setMode(newMode);
+                        obstacle.activated = true; 
+                        spawnExplosion(obstacle.x + obstacle.w/2, canvas.height / 2, 40, '#FF66FF');
+                        
+                        setTimeout(() => {
+                            obstacle.markedForDeletion = true;
+                        }, 500); 
                     }
                 }
             }
@@ -870,7 +884,7 @@
             obstacles.forEach(o => {
                 o.update(deltaFactor);
                 o.draw();
-                handleObstacleInteraction(o);
+                handleObstacleInteraction(o, deltaFactor); // Passing deltaFactor
             });
             obstacles = obstacles.filter(o => !o.markedForDeletion);
 
@@ -931,29 +945,29 @@
         }
 
         function handleGameStart() {
-            if (state.status === 'playing') return;
+            if (state.status === 'menu') { 
+                Object.assign(state, {
+                    status: 'playing', 
+                    frame: 0,
+                    score: 0,
+                    speed: CONFIG.BASE_SPEED,
+                    cameraX: 0,
+                    lives: 0, 
+                    distanceSinceLastPortal: 0,
+                    planeModeTimeLeft: 0,
+                });
+                player.reset();
+                player.setMode('cube'); 
+                obstacles = [];
+                particles = [];
+                spawnTimer = 0;
+                
+                overlay.classList.add('hidden');
+                planeTimerDisplay.classList.add('hidden');
 
-            Object.assign(state, {
-                status: 'playing', 
-                frame: 0,
-                score: 0,
-                speed: CONFIG.BASE_SPEED,
-                cameraX: 0,
-                lives: 0, 
-                distanceSinceLastPortal: 0,
-                planeModeTimeLeft: 0,
-            });
-            player.reset();
-            player.setMode('cube'); 
-            obstacles = [];
-            particles = [];
-            spawnTimer = 0;
-            
-            overlay.classList.add('hidden');
-            planeTimerDisplay.classList.add('hidden');
-
-            lastTime = performance.now();
-            requestAnimationFrame(gameLoop);
+                lastTime = performance.now();
+                requestAnimationFrame(gameLoop);
+            }
         }
 
         function gameOver() {
@@ -972,6 +986,7 @@
         }
 
         function handleJump(e) {
+            // Prevent interference with buttons in the overlay
             if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
 
             if (state.status === 'menu') {
@@ -1017,10 +1032,12 @@
         canvas.addEventListener('touchend', (e) => { e.preventDefault(); handleRelease(); }, { passive: false });
         
         function resizeCanvas() {
+            // Set canvas dimensions to the current size of its responsive parent container
             canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = 700; // Updated canvas height
+            canvas.height = canvas.parentElement.clientHeight; 
             
             if (state.status === 'playing') {
+                // Reset player position relative to the new ground height
                 player.reset();
             }
         }
