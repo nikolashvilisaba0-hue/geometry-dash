@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry Clone - Futuristic Style</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: #0d0e14;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        .game-container {
+            width: 95%; 
+            max-width: 1100px;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.6); 
+            border-radius: 16px;
+            overflow: hidden;
+            border: 4px solid #00FFFF;
+            position: relative;
+        }
+
+        #gameCanvas {
+            display: block;
+            background-color: #1a1a2e; 
+            width: 100%;
+            height: 700px;
+        }
+
+        .hud {
+            position: absolute;
+            top: 20px; 
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .hud-left, .hud-right { 
+            text-shadow: 0 0 5px #000;
+        }
+
+        .score-text {
+            color: #E0E0FF; 
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        
+        .timer-text {
+            color: #FF66FF; 
+            font-size: 1.8rem; 
+            font-weight: 700;
+            text-shadow: 0 0 10px #FF66FF;
+        }
+        
+        .user-id-text {
+            color: #888;
+            font-size: 0.7rem;
+            word-break: break-all;
+            max-width: 200px;
+            text-align: right;
+            line-height: 1.2;
+            margin-top: 5px;
+        }
+
+        .game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .game-overlay h1 {
+            font-size: 5rem; 
+        }
+        
+        .game-overlay p {
+            font-size: 1.3rem; 
+        }
+
+        .game-button {
+            background: linear-gradient(45deg, #00FFFF, #0088FF); 
+            border: 2px solid #00FFFF;
+            color: #0d0e14;
+            padding: 1.2rem 4rem;
+            font-size: 1.7rem; 
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 15px 0;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.7);
+            text-transform: uppercase;
+        }
+        
+        .game-button:hover {
+            background: linear-gradient(45deg, #00FFFF, #44BBFF);
+            box-shadow: 0 0 25px #00FFFF, 0 0 50px rgba(0, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+        
+        .leaderboard-container {
+            width: 90%;
+            max-width: 500px; 
+            background-color: rgba(30, 30, 50, 0.9);
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 25px;
+            border: 2px solid #FF66FF;
+            box-shadow: 0 0 15px rgba(255, 102, 255, 0.6);
+        }
+        
+        .leaderboard-container h2 {
+            font-size: 2.2rem;
+        }
+
+        .leaderboard-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 0 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .leaderboard-list li {
+            margin-bottom: 8px;
+            padding: 10px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+            font-size: 1.1rem;
+            color: #FFFAFA;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+        }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="selection:bg-cyan-500 selection:text-black">
+
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="hud">
+            <div class="hud-left flex flex-col items-start">
+                <div id="scoreDisplay" class="score-text">Score: 0</div>
+                <div id="attemptDisplay" class="score-text opacity-75 text-base">Attempt: 1</div>
+                <div id="livesDisplay" class="score-text text-red-500">Lives: 0</div>
+            </div>
+            <div class="hud-right flex flex-col items-end">
+                 <div id="planeTimerDisplay" class="timer-text hidden"></div>
+                 <div id="userIdDisplay" class="user-id-text opacity-0"></div> <!-- Placeholder for layout -->
+            </div>
+        </div>
+
+        <div id="gameOverlay" class="game-overlay">
+            <h1 id="overlayTitle" class="text-6xl font-bold mb-6 text-cyan-400" style="text-shadow: 0 0 10px #00FFFF;">NEON DASH CLONE</h1>
+            <p class="text-xl text-gray-300 mb-8 font-normal">
+                <span id="controlText">Press SPACE, UP ARROW, or CLICK to Jump</span>
+            </p>
+            <p class="text-lg text-gray-500 mb-8">Timing is key. Collect hearts for a second chance!</p>
+            
+            <button id="mainButton" class="game-button" onclick="handleGameStart()">INITIATE</button>
+            <button id="leaderboardButton" class="game-button !bg-none !border-pink-500 text-pink-400 hover:!bg-pink-900/30" style="box-shadow: 0 0 20px rgba(255, 102, 255, 0.7);" onclick="showLeaderboard()">VIEW HIGH SCORES</button>
+
+            <div id="leaderboardContainer" class="leaderboard-container hidden">
+                <h2 class="text-2xl font-bold text-center text-pink-400 mb-4">LOCAL HIGH SCORES</h2>
+                <ul id="leaderboardList" class="leaderboard-list">
+                </ul>
+                <button class="w-full mt-4 p-3 bg-gray-700 rounded-lg text-gray-300 font-semibold hover:bg-gray-600 transition" onclick="hideLeaderboard()">BACK TO MENU</button>
+            </div>
+            
+            <div id="messageBox" class="absolute bottom-12 p-4 bg-opacity-90 rounded-xl hidden font-normal text-lg" style="box-shadow: 0 0 15px rgba(255, 255, 0, 0.5);"></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const attemptDisplay = document.getElementById('attemptDisplay');
+        const livesDisplay = document.getElementById('livesDisplay');
+        const planeTimerDisplay = document.getElementById('planeTimerDisplay');
+        const overlay = document.getElementById('gameOverlay');
+        const mainButton = document.getElementById('mainButton');
+        const controlText = document.getElementById('controlText');
+        const leaderboardButton = document.getElementById('leaderboardButton');
+        const leaderboardContainer = document.getElementById('leaderboardContainer');
+        const leaderboardList = document.getElementById('leaderboardList');
+        const messageBox = document.getElementById('messageBox');
+        
+        const LOCAL_STORAGE_KEY = 'neonDashHighScores';
+
+        const CONFIG = {
+            GRAVITY: 0.85,          
+            JUMP_FORCE: -16.5,      
+            
+            PLANE_GRAVITY: 0.5,
+            PLANE_LIFT: -0.8,
+            PLANE_MAX_SPEED: -10,
+            
+            PAD_YELLOW_FORCE: -22,
+            PAD_PINK_FORCE: -15,
+            ORB_YELLOW_FORCE: -19, 
+            ORB_PINK_FORCE: -13,
+            
+            BASE_SPEED: 7.5,
+            PLAYER_SIZE: 40,
+            GROUND_HEIGHT: 70, 
+            PARTICLE_LIFE: 30,
+            MODE_CHANGE_INTERVAL: 1500 
+        };
+
+        let state = {
+            status: 'menu', 
+            frame: 0,
+            score: 0,
+            attempts: 1,
+            speed: CONFIG.BASE_SPEED,
+            bgHue: 240, 
+            cameraX: 0,
+            mode: 'cube', 
+            distanceSinceLastPortal: 0,
+            lives: 0, 
+            planeModeTimeLeft: 0, 
+        };
+
+        let lastTime = 0;
+        let particles = [];
+        let obstacles = [];
+        let spawnTimer = 0;
+        
+        function showMessage(text, duration = 1500, color = 'bg-yellow-500', shadowColor = '#FFFF00') {
+            messageBox.innerText = text;
+            messageBox.className = `absolute bottom-12 p-4 ${color} bg-opacity-90 rounded-xl block transition-opacity duration-300 font-normal text-lg`;
+            messageBox.style.boxShadow = `0 0 15px ${shadowColor}`;
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, duration);
+        }
+
+        function loadScores() {
+            try {
+                const storedScores = localStorage.getItem(LOCAL_STORAGE_KEY);
+                return storedScores ? JSON.parse(storedScores) : [];
+            } catch (e) {
+                console.error("Error loading scores from localStorage:", e);
+                return [];
+            }
+        }
+        
+        function saveScores(scores) {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(scores));
+            } catch (e) {
+                console.error("Error saving scores to localStorage:", e);
+                showMessage("Warning: Could not save score locally.", 2000, 'bg-red-700', '#FF0000');
+            }
+        }
+
+        function saveScore(score) {
+            const finalScore = Math.floor(score);
+            if (finalScore <= 0) return;
+
+            let scores = loadScores();
+            
+            scores.push({ score: finalScore, date: new Date().toISOString() });
+            
+            scores.sort((a, b) => b.score - a.score);
+            scores = scores.slice(0, 10); 
+
+            saveScores(scores);
+            
+            const topScores = loadScores();
+            const isNewHighScore = topScores.some(s => s.score === finalScore && s.date === scores.find(s => s.score === finalScore)?.date);
+
+            if(isNewHighScore) {
+                 showMessage(`New High Score Saved!`, 2000, 'bg-green-500', '#00FF00');
+            }
+        }
+        
+        function displayLeaderboardContent() {
+            leaderboardList.innerHTML = ''; 
+            const scores = loadScores();
+            
+            if (scores.length === 0) {
+                leaderboardList.innerHTML = '<li class="text-center py-4 text-gray-500">No scores recorded yet. Be the first!</li>';
+                return;
+            }
+            
+            scores.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = `flex justify-between items-center p-3 rounded-md transition-all duration-150 text-gray-200`;
+                li.innerHTML = `
+                    <span class="text-base font-light mr-6">${index + 1}.</span>
+                    <span class="flex-grow text-base">Attempt Score</span>
+                    <span class="text-xl font-bold text-cyan-400">${item.score}</span>
+                `;
+                leaderboardList.appendChild(li);
+            });
+        }
+        
+        function showLeaderboard() {
+            mainButton.classList.add('hidden');
+            leaderboardButton.classList.add('hidden');
+            leaderboardContainer.classList.remove('hidden');
+            
+            displayLeaderboardContent();
+        }
+
+        function hideLeaderboard() {
+            leaderboardContainer.classList.add('hidden');
+            mainButton.classList.remove('hidden');
+            leaderboardButton.classList.remove('hidden');
+        }
+
+        class Particle {
+            constructor(x, y, color, speedX, speedY, size, life) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = speedX;
+                this.vy = speedY;
+                this.size = size;
+                this.life = life;
+                this.maxLife = life;
+            }
+
+            update(deltaFactor) {
+                this.x += this.vx * deltaFactor;
+                this.y += this.vy * deltaFactor;
+                this.life -= deltaFactor;
+                this.size *= 0.95; 
+            }
+
+            draw() {
+                ctx.globalAlpha = this.life / this.maxLife;
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        class Player {
+            constructor() {
+                this.size = CONFIG.PLAYER_SIZE;
+                this.x = 100; 
+                this.y = 0;
+                this.vy = 0;
+                this.rotation = 0;
+                this.onGround = false;
+                this.mode = 'cube';
+                this.isHoldingInput = false;
+                this.reset();
+            }
+
+            reset() {
+                this.y = canvas.height - CONFIG.GROUND_HEIGHT - this.size;
+                this.vy = 0;
+                this.rotation = 0;
+                this.onGround = true;
+                this.mode = 'cube'; 
+            }
+            
+            setMode(newMode) {
+                this.mode = newMode;
+                this.vy = 0;
+                this.rotation = 0;
+                state.planeModeTimeLeft = newMode === 'plane' ? 1000 : 0; 
+
+                controlText.innerText = newMode === 'cube' 
+                    ? 'Press SPACE, UP ARROW, or CLICK to Jump' 
+                    : 'HOLD SPACE, UP ARROW, or CLICK to Fly Up';
+                state.distanceSinceLastPortal = 0;
+                
+                if (newMode === 'cube') {
+                    planeTimerDisplay.classList.add('hidden');
+                }
+            }
+
+            update(deltaFactor) {
+                if (this.mode === 'cube') {
+                    this.vy += CONFIG.GRAVITY * deltaFactor;
+                    this.y += this.vy * deltaFactor;
+
+                    const groundY = canvas.height - CONFIG.GROUND_HEIGHT - this.size;
+                    if (this.y >= groundY) {
+                        this.y = groundY;
+                        this.vy = 0;
+                        this.onGround = true;
+                        
+                        const targetRotation = Math.round(this.rotation / (Math.PI / 2)) * (Math.PI / 2);
+                        this.rotation += (targetRotation - this.rotation) * 0.2 * deltaFactor;
+
+                    } else {
+                        this.onGround = false;
+                        this.rotation += 0.15 * deltaFactor; 
+                    }
+                } 
+                else if (this.mode === 'plane') {
+                    state.planeModeTimeLeft = Math.max(0, state.planeModeTimeLeft - deltaFactor);
+                    if (state.planeModeTimeLeft <= 0) {
+                        this.setMode('cube'); 
+                        return;
+                    }
+                    
+                    this.vy += CONFIG.PLANE_GRAVITY * deltaFactor; 
+
+                    if (this.isHoldingInput) {
+                        this.vy += CONFIG.PLANE_LIFT * deltaFactor;
+                        if (this.vy < CONFIG.PLANE_MAX_SPEED) {
+                            this.vy = CONFIG.PLANE_MAX_SPEED;
+                        }
+                    }
+
+                    this.y += this.vy * deltaFactor;
+
+                    const groundY = canvas.height - CONFIG.GROUND_HEIGHT - this.size;
+                    if (this.y >= groundY) {
+                        this.y = groundY;
+                        this.vy = 0;
+                    } else if (this.y <= 0) {
+                        this.y = 0;
+                        this.vy = 0;
+                    }
+                    
+                    this.rotation = (this.vy / 20) * (Math.PI / 4); 
+                    this.onGround = (this.y === groundY);
+                    
+                    planeTimerDisplay.classList.remove('hidden');
+                    planeTimerDisplay.innerText = `PLANE MODE: ${Math.ceil(state.planeModeTimeLeft / 60)}`;
+                }
+
+                if (state.frame % 3 === 0) {
+                     particles.push(new Particle(
+                         this.x - 5, 
+                         this.y + this.size/2 + (Math.random()*10 - 5), 
+                         `hsla(${state.bgHue}, 100%, 70%, 0.8)`, 
+                         -2, 0, 10, 20
+                     ));
+                }
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.size / 2, this.y + this.size / 2);
+                ctx.rotate(this.rotation);
+                
+                const color = this.mode === 'cube' ? '#00FFFF' : '#FF00FF'; 
+
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 15;
+                
+                ctx.fillStyle = '#111'; 
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 4;
+                
+                if (this.mode === 'cube') {
+                    ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+                    ctx.strokeRect(-this.size / 2, -this.size / 2, this.size, this.size);
+                } else { 
+                     ctx.beginPath();
+                     ctx.moveTo(-this.size/2, this.size/2);
+                     ctx.lineTo(this.size/2, this.size/2);
+                     ctx.lineTo(0, -this.size/2);
+                     ctx.closePath();
+                     ctx.fill();
+                     ctx.stroke();
+                }
+                
+                ctx.fillStyle = color;
+                ctx.font = `${this.size * 0.5}px Orbitron, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.mode === 'cube' ? '■' : '▲', 0, 0);
+
+                ctx.restore();
+                ctx.shadowBlur = 0; 
+            }
+
+            jump(force) {
+                this.vy = force;
+                this.onGround = false;
+            }
+        }
+
+        class Obstacle {
+            constructor(x, type, w = 40, h = 40, yOffset = 0) {
+                this.x = x;
+                this.type = type; 
+                this.markedForDeletion = false;
+                this.activated = false; 
+                this.w = w;
+                this.h = h;
+                this.yOffset = yOffset; 
+                this.y = this.calculateY(); 
+            }
+            
+            calculateY() {
+                if (this.type === 'spike' || this.type === 'block' || this.type.startsWith('pad')) {
+                    return canvas.height - CONFIG.GROUND_HEIGHT - this.h;
+                }
+                if (this.type === 'orb_yellow' || this.type === 'orb_pink' || this.type === 'second_life') {
+                    return canvas.height - CONFIG.GROUND_HEIGHT - this.yOffset - this.h / 2;
+                }
+                if (this.type === 'block_platform') {
+                    return canvas.height - CONFIG.GROUND_HEIGHT - this.yOffset;
+                }
+                if (this.type === 'mode_change') {
+                    this.h = canvas.height - CONFIG.GROUND_HEIGHT; 
+                    return 0; 
+                }
+                return canvas.height - CONFIG.GROUND_HEIGHT - this.h;
+            }
+
+            update(deltaFactor) {
+                this.x -= state.speed * deltaFactor;
+                if (this.x + this.w < 0) {
+                    this.markedForDeletion = true;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                
+                let color, glowColor;
+                
+                if (this.type === 'spike') {
+                    color = '#FF0000'; 
+                    glowColor = '#FF3333';
+                    ctx.shadowColor = glowColor;
+                    ctx.shadowBlur = 10;
+
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y + this.h);
+                    ctx.lineTo(this.x + this.w / 2, this.y);
+                    ctx.lineTo(this.x + this.w, this.y + this.h);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                } else if (this.type === 'block') {
+                    color = '#00AAAA'; 
+                    glowColor = '#00FFFF';
+                    ctx.shadowColor = glowColor;
+                    ctx.shadowBlur = 10;
+                    
+                    ctx.fillStyle = color;
+                    ctx.fillRect(this.x, this.y, this.w, this.h);
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(this.x, this.y, this.w, this.h);
+
+                } else if (this.type === 'pad_yellow') {
+                    color = '#FFCC00'; 
+                    glowColor = '#FFFF66';
+                    ctx.shadowColor = glowColor;
+                    ctx.shadowBlur = 10;
+
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y + this.h);
+                    ctx.lineTo(this.x + this.w / 2, this.y);
+                    ctx.lineTo(this.x + this.w, this.y + this.h);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#000';
+                    ctx.font = '16px Orbitron';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('J', this.x + this.w / 2, this.y + this.h * 0.8);
+                    
+                } else if (this.type === 'pad_pink') {
+                    color = '#FF69B4'; 
+                    glowColor = '#FF99CC';
+                    ctx.shadowColor = glowColor;
+                    ctx.shadowBlur = 10;
+
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y + this.h);
+                    ctx.lineTo(this.x + this.w / 2, this.y);
+                    ctx.lineTo(this.x + this.w, this.y + this.h);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#000';
+                    ctx.font = '16px Orbitron';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('j', this.x + this.w / 2, this.y + this.h * 0.8);
+
+                } else if (this.type.startsWith('orb')) {
+                    color = this.type === 'orb_yellow' ? '#FFCC00' : '#FF69B4';
+                    glowColor = this.type === 'orb_yellow' ? '#FFFF66' : '#FF99CC';
+                    ctx.shadowColor = glowColor;
+                    ctx.shadowBlur = 15;
+
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.w / 2, this.y + this.h / 2, this.w / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                } else if (this.type === 'second_life') {
+                    color = '#FF0000'; 
+                    glowColor = '#FF6666';
+                    ctx.shadowColor = glowColor;
+                    ctx.shadowBlur = 15;
+
+                    ctx.fillStyle = color;
+                    ctx.font = `${this.w}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('♥', this.x + this.w / 2, this.y + this.h / 2); 
+                    
+                } else if (this.type === 'mode_change') {
+                    color = '#FF00FF'; 
+                    glowColor = '#FF66FF';
+                    ctx.shadowColor = glowColor;
+                    ctx.shadowBlur = 20;
+
+                    const portalHeight = canvas.height - CONFIG.GROUND_HEIGHT;
+                    
+                    ctx.fillStyle = `rgba(255, 0, 255, 0.2)`; 
+                    ctx.fillRect(this.x, 0, this.w, portalHeight);
+                    
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 5;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x + this.w / 2, 0);
+                    ctx.lineTo(this.x + this.w / 2, portalHeight);
+                    ctx.stroke();
+
+                    ctx.fillStyle = color;
+                    ctx.font = '28px Orbitron';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const modeText = player.mode === 'cube' ? 'PLANE' : 'CUBE';
+                    ctx.fillText(modeText, this.x + this.w / 2, portalHeight / 2);
+
+                } else if (this.type === 'block_platform') {
+                    color = '#444'; 
+                    glowColor = '#888';
+                    ctx.shadowColor = glowColor;
+                    ctx.shadowBlur = 10;
+                    
+                    ctx.fillStyle = color; 
+                    ctx.fillRect(this.x, this.y, this.w, this.h);
+                    ctx.strokeStyle = '#666';
+                    ctx.lineWidth = 1;
+                    for(let i = 1; i < this.w / 20; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(this.x + i * 20, this.y);
+                        ctx.lineTo(this.x + i * 20, this.y + this.h);
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.restore();
+            }
+
+            getBounds() {
+                return { x: this.x, y: this.y, w: this.w, h: this.h, type: this.type };
+            }
+        }
+
+        let player = new Player();
+
+        function checkCollision(p, o) {
+            const pX = p.x;
+            const pY = p.y;
+            const pW = p.size;
+            const pH = p.size;
+
+            const oX = o.x;
+            const oY = o.y;
+            const oW = o.w;
+            const oH = o.h;
+            
+            return pX < oX + oW &&
+                   pX + pW > oX &&
+                   pY < oY + oH &&
+                   pY + pH > oY;
+        }
+
+        function handleObstacleInteraction(obstacle) {
+            const bounds = obstacle.getBounds();
+
+            if (obstacle.type === 'spike' || obstacle.type === 'block') {
+                if (checkCollision(player, obstacle)) {
+                    if (state.lives > 0) {
+                        state.lives--;
+                        resetPlayerPosition();
+                        obstacle.markedForDeletion = true; 
+                        spawnExplosion(player.x + player.size/2, player.y + player.size/2, 20, '#FF3333');
+                        showMessage("Life Lost! Restarting...", 1000, 'bg-red-700', '#FF0000');
+                        return;
+                    }
+                    gameOver();
+                    return;
+                }
+            } else if (obstacle.type.startsWith('pad') && player.mode === 'cube') {
+                if (checkCollision(player, obstacle) && !obstacle.activated) {
+                    if (player.y + player.size - player.vy * (1/60) <= bounds.y) {
+                        const force = obstacle.type === 'pad_yellow' ? CONFIG.PAD_YELLOW_FORCE : CONFIG.PAD_PINK_FORCE;
+                        player.jump(force);
+                        obstacle.activated = true; 
+                        spawnExplosion(obstacle.x + obstacle.w/2, obstacle.y + obstacle.h/2, 10, '#FFFFFF');
+                    }
+                }
+            } else if (obstacle.type.startsWith('orb') && player.mode === 'cube') {
+                if (checkCollision(player, obstacle) && !obstacle.activated && player.isHoldingInput) {
+                    const force = obstacle.type === 'orb_yellow' ? CONFIG.ORB_YELLOW_FORCE : CONFIG.ORB_PINK_FORCE;
+                    player.jump(force);
+                    obstacle.activated = true; 
+                    spawnExplosion(obstacle.x + obstacle.w/2, obstacle.y + obstacle.h/2, 10, '#FFFFFF');
+                }
+            } else if (obstacle.type === 'second_life') {
+                if (checkCollision(player, obstacle)) {
+                    state.lives = Math.min(3, state.lives + 1); 
+                    showMessage("Life Protocol Activated! (+1 ♥)", 1500, 'bg-green-600', '#00FF00');
+                    obstacle.markedForDeletion = true;
+                }
+            } else if (obstacle.type === 'mode_change') {
+                if (checkCollision(player, obstacle) && !obstacle.activated) {
+                    const newMode = player.mode === 'cube' ? 'plane' : 'cube';
+                    player.setMode(newMode);
+                    obstacle.activated = true; 
+                    spawnExplosion(obstacle.x + obstacle.w/2, canvas.height / 2, 40, '#FF66FF');
+                    
+                    setTimeout(() => {
+                         obstacle.markedForDeletion = true;
+                    }, 500); 
+                }
+            } else if (obstacle.type === 'block_platform' && player.mode === 'plane') {
+                if (checkCollision(player, obstacle)) {
+                    if (player.y + player.size - player.vy * (1/60) <= bounds.y && player.vy > 0) {
+                        player.y = bounds.y - player.size;
+                        player.vy = 0;
+                        player.onGround = true; 
+                    }
+                }
+            }
+        }
+        
+        function resetPlayerPosition() {
+            player.reset();
+            obstacles = obstacles.filter(o => o.type !== 'mode_change'); 
+            spawnTimer = 0;
+            state.cameraX = 0;
+            state.distanceSinceLastPortal = 0;
+            state.planeModeTimeLeft = 0;
+            planeTimerDisplay.classList.add('hidden');
+        }
+
+        function spawnObstacles() {
+            if (spawnTimer <= 0) {
+                const obstacleType = Math.random();
+                let newObstacle = null;
+                const baseWidth = 40;
+                
+                if (player.mode === 'cube') {
+                    if (obstacleType < 0.25) {
+                        newObstacle = new Obstacle(canvas.width, 'spike', 30, 30);
+                    } else if (obstacleType < 0.45) {
+                        newObstacle = new Obstacle(canvas.width, 'block', baseWidth, baseWidth);
+                    } else if (obstacleType < 0.60) {
+                        newObstacle = new Obstacle(canvas.width, 'pad_yellow', baseWidth, 10);
+                    } else if (obstacleType < 0.75) {
+                        const yOffset = 80 + Math.random() * 80;
+                        newObstacle = new Obstacle(canvas.width, Math.random() < 0.5 ? 'orb_yellow' : 'orb_pink', 30, 30, yOffset);
+                    } else if (obstacleType < 0.80) {
+                        const yOffset = 100 + Math.random() * 50;
+                        newObstacle = new Obstacle(canvas.width, 'second_life', 30, 30, yOffset);
+                    } else {
+                    }
+                } else if (player.mode === 'plane') {
+                     if (obstacleType < 0.8) {
+                        const platformWidth = 100 + Math.random() * 150;
+                        const platformHeightOffset = 60 + Math.random() * (canvas.height - CONFIG.GROUND_HEIGHT - 100);
+                        newObstacle = new Obstacle(canvas.width, 'block_platform', platformWidth, 30, platformHeightOffset);
+                    } else {
+                         newObstacle = new Obstacle(canvas.width, 'block', 20, 20, 100 + Math.random() * 50);
+                    }
+                }
+                
+                const portalInterval = 500; 
+                const initialSpawnDistance = 100; 
+                const nextPortalX = state.distanceSinceLastPortal > initialSpawnDistance && state.distanceSinceLastPortal % portalInterval < state.speed * 2;
+
+
+                if (nextPortalX) {
+                    const overlap = obstacles.some(o => o.x > canvas.width - baseWidth && o.x < canvas.width + baseWidth);
+                    if (!overlap) {
+                        newObstacle = new Obstacle(canvas.width + 100, 'mode_change', 40); 
+                        state.distanceSinceLastPortal = 0; 
+                    }
+                }
+
+
+                if (newObstacle) {
+                    obstacles.push(newObstacle);
+                }
+
+                spawnTimer = 60 + Math.random() * (120 - state.speed * 5); 
+                spawnTimer = Math.max(spawnTimer, 40); 
+            } else {
+                spawnTimer -= 1;
+            }
+        }
+        
+        function spawnExplosion(x, y, count, color) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 5 + 2;
+                particles.push(new Particle(
+                    x, y, 
+                    color, 
+                    Math.cos(angle) * speed, 
+                    Math.sin(angle) * speed, 
+                    10, CONFIG.PARTICLE_LIFE
+                ));
+            }
+        }
+
+        function gameLoop(timestamp) {
+            if (state.status !== 'playing') return;
+
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+            const deltaFactor = deltaTime / (1000 / 60); 
+
+            state.frame++;
+            state.score += (state.speed / 10) * deltaFactor; 
+            state.speed = CONFIG.BASE_SPEED + state.score / 500; 
+            state.bgHue = (state.bgHue + 0.1 * deltaFactor) % 360; 
+            state.cameraX = (state.cameraX + state.speed * deltaFactor) % 20; 
+            state.distanceSinceLastPortal += state.speed * deltaFactor;
+
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            
+            spawnObstacles();
+
+            obstacles.forEach(o => {
+                o.update(deltaFactor);
+                o.draw();
+                handleObstacleInteraction(o);
+            });
+            obstacles = obstacles.filter(o => !o.markedForDeletion);
+
+            player.update(deltaFactor);
+            player.draw();
+            
+            particles.forEach(p => p.update(deltaFactor));
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => p.draw());
+
+            scoreDisplay.innerText = `SCORE: ${Math.floor(state.score)}`;
+            livesDisplay.innerText = `LIVES: ${state.lives}`;
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        function drawBackground() {
+            const floorY = canvas.height - CONFIG.GROUND_HEIGHT;
+            
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, floorY);
+            bgGradient.addColorStop(0, `hsl(${state.bgHue}, 60%, 8%)`);
+            bgGradient.addColorStop(1, `hsl(${state.bgHue}, 60%, 15%)`);
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, canvas.width, floorY);
+
+            ctx.strokeStyle = `hsl(${state.bgHue + 60}, 100%, 50%)`;
+            ctx.lineWidth = 1;
+            ctx.shadowColor = `hsl(${state.bgHue + 60}, 100%, 50%)`;
+            ctx.shadowBlur = 5;
+
+            for (let i = 1; i < floorY / 50; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, floorY - i * 50);
+                ctx.lineTo(canvas.width, floorY - i * 50);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = `hsl(${state.bgHue}, 60%, 25%)`;
+            ctx.fillRect(0, floorY, canvas.width, CONFIG.GROUND_HEIGHT);
+            
+            ctx.strokeStyle = `hsl(${state.bgHue + 60}, 100%, 65%)`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, floorY);
+            ctx.lineTo(canvas.width, floorY);
+            ctx.stroke();
+
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width / 40 + 2; i++) {
+                ctx.beginPath();
+                const xPos = i * 40 - (state.cameraX % 40);
+                ctx.moveTo(xPos, floorY);
+                ctx.lineTo(xPos, floorY + CONFIG.GROUND_HEIGHT);
+                ctx.stroke();
+            }
+            
+            ctx.shadowBlur = 0; 
+        }
+
+        function handleGameStart() {
+            if (state.status === 'playing') return;
+
+            Object.assign(state, {
+                status: 'playing', 
+                frame: 0,
+                score: 0,
+                speed: CONFIG.BASE_SPEED,
+                cameraX: 0,
+                lives: 0, 
+                distanceSinceLastPortal: 0,
+                planeModeTimeLeft: 0,
+            });
+            player.reset();
+            player.setMode('cube'); 
+            obstacles = [];
+            particles = [];
+            spawnTimer = 0;
+            
+            overlay.classList.add('hidden');
+            planeTimerDisplay.classList.add('hidden');
+
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            state.status = 'menu';
+            overlay.classList.remove('hidden');
+            document.getElementById('overlayTitle').innerHTML = `<span class="text-red-500" style="text-shadow: 0 0 10px #FF0000;">SYSTEM FAILURE</span><br>SCORE: ${Math.floor(state.score)}`;
+            mainButton.innerText = "RE-INITIATE";
+            mainButton.classList.remove('hidden');
+            leaderboardButton.classList.remove('hidden');
+            leaderboardContainer.classList.add('hidden');
+            
+            state.attempts++;
+            attemptDisplay.innerText = `Attempt: ${state.attempts}`;
+            
+            saveScore(state.score);
+        }
+
+        function handleJump(e) {
+            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') return;
+
+            if (state.status === 'menu') {
+                handleGameStart();
+                return;
+            }
+
+            if (state.status === 'playing') {
+                if (player.mode === 'cube' && player.onGround) {
+                    player.jump(CONFIG.JUMP_FORCE);
+                    player.isHoldingInput = true;
+                } else if (player.mode === 'cube' && !player.onGround) {
+                    player.isHoldingInput = true;
+                } else if (player.mode === 'plane') {
+                    player.isHoldingInput = true;
+                }
+            }
+        }
+        
+        function handleRelease() {
+            player.isHoldingInput = false;
+        }
+
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.code === 'Space' || e.code === 'ArrowUp') && state.status === 'playing') {
+                e.preventDefault();
+                if (!player.isHoldingInput) {
+                    handleJump(e);
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+             if (e.code === 'Space' || e.code === 'ArrowUp') {
+                handleRelease();
+            }
+        });
+
+        canvas.addEventListener('mousedown', handleJump);
+        canvas.addEventListener('mouseup', handleRelease);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleJump(e); }, { passive: false });
+        canvas.addEventListener('touchend', (e) => { e.preventDefault(); handleRelease(); }, { passive: false });
+        
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = 700; // Updated canvas height
+            
+            if (state.status === 'playing') {
+                player.reset();
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        window.onload = function() {
+            resizeCanvas();
+            drawBackground(); 
+        };
+
+    </script>
+</body>
+</html>
